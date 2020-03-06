@@ -732,7 +732,7 @@ end
 Given /^the bridge interface named "([^"]*)" is deleted from the "([^"]*)" node$/ do |bridge_name, node_name|
   ensure_admin_tagged
   check_and_delete_inf= %Q(if ip addr show  #{bridge_name};
-                           then 
+                           then
                               ip link delete #{bridge_name};
                            fi)
   node = node(node_name)
@@ -876,7 +876,7 @@ Given /^the vxlan tunnel address of node "([^"]*)" is stored in the#{OPT_SYM} cl
   end
   case networkType
   when "OVNKubernetes"
-    inf_name="ovn-k8s-mp0" 
+    inf_name="ovn-k8s-mp0"
     @result = host.exec_admin("ifconfig #{inf_name.split("\n")[0]}")
     cb[cb_address] = @result[:response].match(/\d{1,3}\.\d{1,3}.\d{1,3}.\d{1,3}/)[0]
   when "OpenShiftSDN"
@@ -944,10 +944,9 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
   end
 
   sdn_pod = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
-    true
+    # make sure we pick a Running master
+    pod.ready?(user: admin, cached: false)
   }.first
-  # do we need to cache this here?
-  cache_resources sdn_pod
   @result = sdn_pod.exec(*ovsappctl_cmd, as: admin, container: "northd")
   raise "Failed to execute network command!" unless @result[:success]
   cluster_state = @result[:response].strip.delete "\r"
@@ -960,7 +959,6 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
   leader_pod = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
     pod.node_name == leader_node || pod.ip == leader_node
   }.first
-  cache_resources leader_pod
   cb[cb_leader_name] = leader_pod
 end
 
@@ -979,13 +977,34 @@ Given /^the OVN "([^"]*)" database is killed on the "([^"]*)" node$/ do |ovndb, 
   raise "Failed to kill the #{ovndb} database daemon" unless @result[:success]
 end
 
+
 Given /^OVN is functional on the cluster$/ do
   ensure_admin_tagged
   ovnkube_node_ds = daemon_set('ovnkube-node', project('openshift-ovn-kubernetes')).replica_counters(user: admin,cached: false)
   ovnkube_master_ds = daemon_set('ovnkube-master', project('openshift-ovn-kubernetes')).replica_counters(user: admin,cached: false)
   desired_ovnkube_node_replicas, available_ovnkube_node_replicas = ovnkube_node_ds.values_at(:desired, :available)
   desired_ovnkube_master_replicas, available_ovnkube_master_replicas = ovnkube_master_ds.values_at(:desired, :available)
-  
+
   raise "OVN is not running correctly! Check one of your ovnkube-node pod" unless desired_ovnkube_node_replicas == available_ovnkube_node_replicas && available_ovnkube_node_replicas != 0
   raise "OVN is not running correctly! Check one of your ovnkube-master pod" unless desired_ovnkube_master_replicas == available_ovnkube_master_replicas && available_ovnkube_master_replicas != 0
+end
+
+
+# work-around nested clipboard Transform <% cb.south_leader.name %> issues by combining this step
+Given /^admin deletes the ovnkube-master#{OPT_QUOTED} leader$/ do |ovndb|
+  ensure_admin_tagged
+
+  cb_leader_name ||= "#{ovndb}_leader"
+  if cb[cb_leader_name] == nil
+    step %Q/I store the ovnkube-master "#{ovndb}" leader pod in the :#{cb_leader_name} clipboard/
+  end
+  leader_pod_name = cb[cb_leader_name].name
+  # this doens't work for some reason, can't find the dynamic step
+  # step %Q/Given admin ensures "#{leader_pod_name}" pod is deleted from the "openshift-ovn-kubernetes" project/
+
+  _resource = resource(leader_pod_name, "pod", project_name: "openshift-ovn-kubernetes")
+  p = proc {
+    @result = _resource.ensure_deleted(user: admin, wait: 300)
+  }
+  p.call
 end
