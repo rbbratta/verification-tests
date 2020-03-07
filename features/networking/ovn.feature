@@ -43,7 +43,7 @@ Feature: OVN related networking scenarios
     # Check pod works
     Given I wait up to 60 seconds for the steps to pass:
     """
-    When I execute on the "<%= cb.pod2_name%>" pod:
+    When I execute on the "<%= cb.pod2_name %>" pod:
       | curl | <%= cb.pod1_ip%>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
@@ -68,19 +68,58 @@ Feature: OVN related networking scenarios
     """
 
 
-#  # @author rbrattai@redhat.com
-#  # @case_id OCP-26139
-#  @admin
-#  @destructive
-#  Scenario: Traffic flow shouldn't be interrupted when master switches the leader positions
-#    Given I have a project
-#    Given I have a pod-for-ping in the project
-#    Given I have a pod-for-ping in the "<%= cb.usr_project %>" project
-#    Given I store the ovnkube-master "south" leader pod in the clipboard
-#    When admin deletes the ovnkube-master "south" leader
-#    Then the step should succeed
-#    When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
-#    Then the step should succeed
-#    And the expression should be true> cb.south_leader.name != cb.new_south_leader.name
-#    And admin waits for all pods in the "openshift-ovn-kubernetes" project to become ready up to 60 seconds
-#    Given I ensure "hello-pod" pod is deleted from the "<%= cb.usr_project%>" project
+  # @author rbrattai@redhat.com
+  # @case_id OCP-26139
+  @admin
+  @destructive
+  Scenario: Traffic flow shouldn't be interrupted when master switches the leader positions
+    Given I switch to cluster admin pseudo user
+    Given admin creates a project
+    And evaluation of `project.name` is stored in the :iperf_project clipboard
+    And admin uses the "<%= cb.iperf_project %>" project
+
+    When I run the :create admin command with:
+      | f | https://raw.githubusercontent.com/rbbratta/v3-testfiles/add-iperf-nodeport/networking/iperf_nodeport_service.json |
+    Then the step should succeed
+    And the pod named "iperf-server" becomes ready
+    And evaluation of `service("iperf-server").ip(user: user)` is stored in the :iperf_service_ip clipboard
+
+    Given I store the ovnkube-master "south" leader pod in the clipboard
+    Given I store the masters in the :masters clipboard
+
+    # place directly on master
+    When I run oc create as admin over "https://raw.githubusercontent.com/openshift-qe/v3-testfiles/master/networking/egress-ingress/qos/iperf-server.json" replacing paths:
+      | ["spec"]["containers"][0]["args"] | ["-c", "<%= cb.iperf_service_ip %>", "-u", "-J", "-t", "30"] |
+      | ["spec"]["containers"][0]["name"] | "iperf-client"                                               |
+      | ["metadata"]["name"]              | "iperf-client"                                               |
+      | ["spec"]["nodeName"]              | "<%= cb.masters[0].name %>"                                  |
+      | ["spec"]["hostNetwork"]           | true                                                         |
+      | ["spec"]["restartPolicy"]         | "Never"                                                      |
+    Then the step should succeed
+    And the pod named "iperf-client" becomes ready
+
+    When admin deletes the ovnkube-master "south" leader
+    Then the step should succeed
+    When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
+    Then the step should succeed
+    And the expression should be true> cb.south_leader.name != cb.new_south_leader.name
+    And admin waits for all pods in the "openshift-ovn-kubernetes" project to become ready up to 60 seconds
+    Given I use the "<%= cb.iperf_project %>" project
+    When the pod named "iperf-client" status becomes :succeeded within 120 seconds
+    And I run the :logs client command with:
+      | resource_name | iperf-client |
+    Then the step should succeed
+    And the output is parsed as JSON
+    Then the expression should be true> @result[:parsed]['end']['sum']['lost_percent'].to_f < 10
+    Then the expression should be true> @result[:parsed]['end']['sum']['bytes'].to_f > 1024
+    Then the expression should be true> @result[:parsed]['end']['sum']['packets'].to_f > 0
+    Then the expression should be true> @result[:parsed]['end']['sum']['jitter_ms'].to_f < 1
+    And I run the :logs client command with:
+      | resource_name | iperf-server |
+    Then the step should succeed
+    And the output is parsed as JSON
+    Then the expression should be true> @result[:parsed]['end']['sum']['lost_percent'].to_f < 10
+    # server doesn't count bytes
+    Then the expression should be true> @result[:parsed]['end']['sum']['packets'].to_f > 0
+    Then the expression should be true> @result[:parsed]['end']['sum']['jitter_ms'].to_f < 1
+
