@@ -945,10 +945,15 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
   }
   # use the oldest sdn_pod, hopying that it is the master
   sdn_pods.sort!{ |a,b| a.props[:created] <=> b.props[:created]}
-  sdn_pod = sdn_pods.first
-  @result = sdn_pod.exec(*ovsappctl_cmd, as: admin, container: "northd")
-  raise "Failed to execute network command!" unless @result[:success]
-  cluster_state = @result[:response].strip.delete "\r"
+  cluster_state = nil
+  sdn_pods.each{ |sdn_pod|
+    @result = sdn_pod.exec(*ovsappctl_cmd, as: admin, container: "northd")
+    if @result[:success]
+      cluster_state = @result[:response].strip.delete "\r"
+      break
+    end
+  }
+  raise "Failed to execute network command!" unless cluster_state != nil
   # for some reason "oc rsh" output contains CR, so we have to remove them
   leader_id = cluster_state.match(/Leader:\s+(\S+)/)
   servers = cluster_state.match(/Servers:\n(.*)/m)
