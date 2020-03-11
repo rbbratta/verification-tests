@@ -939,14 +939,14 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
     ovsappctl_cmd = %w(ovs-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound)
   end
 
-  sdn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
+  ovn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
     # make sure we pick a Running master
     pod.ready?(user: admin, cached: false)
   }
   # use the oldest sdn_pod, hopying that it is the master
-  sdn_pods.sort!{ |a,b| a.props[:created] <=> b.props[:created]}
+  ovn_pods.sort!{ |a,b| a.props[:created] <=> b.props[:created]}
   cluster_state = nil
-  sdn_pods.each{ |sdn_pod|
+  ovn_pods.each{ |sdn_pod|
     @result = sdn_pod.exec(*ovsappctl_cmd, as: admin, container: "northd")
     if @result[:success]
       cluster_state = @result[:response].strip.delete "\r"
