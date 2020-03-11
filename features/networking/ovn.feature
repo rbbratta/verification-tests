@@ -161,3 +161,56 @@ Feature: OVN related networking scenarios
     And the expression should be true> cb.south_leader != cb.new_south_leader
     """
     And admin waits for all pods in the project to become ready up to 60 seconds
+
+
+  # @author rbrattai@redhat.com
+  # @case_id OCP-26138
+  @admin
+  @destructive
+  Scenario: Inducing Split Brain in the OVN HA cluster
+    Given admin uses the "openshift-ovn-kubernetes" project
+    When I store the ovnkube-master "south" leader pod in the clipboard
+    Then the step should succeed
+
+    Given I select a random master not named "<%= cb.south_leader.node_name %>"
+    When I run commands on the host:
+      | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -j DROP |
+    Then the step should succeed
+
+    And I wait up to 30 seconds for the steps to pass:
+    """
+    When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
+    Then the step should succeed
+    And the expression should be true> cb.south_leader == cb.new_south_leader
+    """
+    When I run commands on the host:
+      | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -j DROP |
+    And I wait up to 30 seconds for the steps to pass:
+    """
+    When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
+    Then the step should succeed
+    And the expression should be true> cb.south_leader == cb.new_south_leader
+    """
+    And admin waits for all pods in the project to become ready up to 60 seconds
+
+
+  # @author rbrattai@redhat.com
+  # @case_id OCP-26140
+  @admin
+  @destructive
+  Scenario: Delete all OVN master pods and makes sure leader/follower election converges smoothly
+    Given admin uses the "openshift-ovn-kubernetes" project
+    When I store the ovnkube-master "north" leader pod in the clipboard
+    Then the step should succeed
+    When I run the :delete admin command with:
+      | object_type | pod                |
+      | l           | app=ovnkube-master |
+    Then the step should succeed
+    And I wait up to 30 seconds for the steps to pass:
+    """
+    When I store the ovnkube-master "north" leader pod in the :new_north_leader clipboard
+    Then the step should succeed
+    And the expression should be true> cb.north_leader.name != cb.new_north_leader.name
+    """
+    And admin waits for all pods in the project to become ready up to 60 seconds
+
