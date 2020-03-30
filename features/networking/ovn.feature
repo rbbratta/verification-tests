@@ -167,8 +167,9 @@ Feature: OVN related networking scenarios
     Then the step should succeed
 
     Given I select a random master not named "<%= cb.south_leader.node_name %>"
+    # don't block all traffic that breaks etcd, just block the OVN ssl ports
     When I run commands on the host:
-      | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -j DROP |
+      | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9641:9648 -j DROP |
     Then the step should succeed
 
     And I wait up to 30 seconds for the steps to pass:
@@ -178,7 +179,7 @@ Feature: OVN related networking scenarios
     And the expression should be true> cb.south_leader == cb.new_south_leader
     """
     When I run commands on the host:
-      | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -j DROP |
+      | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9641:9648 -j DROP |
     And I wait up to 30 seconds for the steps to pass:
     """
     When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
