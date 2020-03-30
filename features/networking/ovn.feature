@@ -1,10 +1,10 @@
 Feature: OVN related networking scenarios
 
   # @author rbrattai@redhat.com
-  # @case_id OCP-26139
+  # @case_id OCP-28936
   @admin
   @destructive
-  Scenario: Repeat delete and creation
+  Scenario: Create/delete pods while forcing OVN leader election
   #Test for bug https://bugzilla.redhat.com/show_bug.cgi?id=1781297
     Given I have a project
     And evaluation of `project.name` is stored in the :usr_project clipboard
