@@ -42,7 +42,7 @@ Feature: OVN related networking scenarios
 
     # Check pod works
     When I execute on the "<%= cb.pod2_name %>" pod:
-      | curl | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
+      | curl | -s | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
 
@@ -57,7 +57,7 @@ Feature: OVN related networking scenarios
     # Check pod works
     Given I use the "<%= cb.usr_project%>" project
     When I execute on the "<%= cb.pod2_name %>" pod:
-      | curl | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
+      | curl | -s | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
 
