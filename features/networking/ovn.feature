@@ -41,13 +41,10 @@ Feature: OVN related networking scenarios
     And evaluation of `pod(1).name` is stored in the :pod2_name clipboard
 
     # Check pod works
-    Given I wait up to 60 seconds for the steps to pass:
-    """
     When I execute on the "<%= cb.pod2_name %>" pod:
-      | curl | <%= cb.pod1_ip%>:8080 |
+      | curl | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
-    """
 
     When admin deletes the ovnkube-master "south" leader
     Then the step should succeed
@@ -59,13 +56,10 @@ Feature: OVN related networking scenarios
 
     # Check pod works
     Given I use the "<%= cb.usr_project%>" project
-    And I wait up to 60 seconds for the steps to pass:
-    """
-    When I execute on the "<%= cb.pod2_name%>" pod:
-      | curl | <%= cb.pod1_ip%>:8080 |
+    When I execute on the "<%= cb.pod2_name %>" pod:
+      | curl | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
-    """
 
 
   # @author rbrattai@redhat.com
