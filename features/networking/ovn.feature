@@ -166,7 +166,8 @@ Feature: OVN related networking scenarios
     When I store the ovnkube-master "south" leader pod in the clipboard
     Then the step should succeed
 
-    Given I select a random master not named "<%= cb.south_leader.node_name %>"
+    Given I store the masters in the clipboard excluding "<%= cb.south_leader.node_name %>"
+    And I use the "<%= cb.nodes[0].name %>" node
     # don't block all traffic that breaks etcd, just block the OVN ssl ports
     When I run commands on the host:
       | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
