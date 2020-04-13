@@ -994,10 +994,6 @@ Given /^admin deletes the ovnkube-master#{OPT_QUOTED} leader$/ do |ovndb|
   # this doens't work for some reason, can't find the dynamic step
   # step %Q/Given admin ensures "#{leader_pod_name}" pod is deleted from the "openshift-ovn-kubernetes" project/
 
-  _resource = resource(leader_pod_name, "pod", project_name: "openshift-ovn-kubernetes")
-  p = proc {
-    @result = _resource.ensure_deleted(user: admin, wait: 300)
-  }
-  p.call
+  @result = resource(leader_pod_name, "pod", project_name: "openshift-ovn-kubernetes").ensure_deleted(user: admin, wait: 300)
 end
 
