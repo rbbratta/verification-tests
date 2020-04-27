@@ -58,27 +58,6 @@ Given /^I store the( schedulable| ready and schedulable)? (node|master|worker)s 
   cache_resources *cb[cbname].shuffle
 end
 
-Given /^I select a random( schedulable| ready and schedulable)? (node|master|worker) not named #{QUOTED}$/ do |state, role, name|
-  ensure_admin_tagged
-
-  nodes = env.nodes.select { |n| n.name != name }
-
-  if state != nil && state.strip == "schedulable"
-    nodes = nodes.select { |n| n.schedulable? }
-  else
-    nodes = nodes.select { |n| n.ready? && n.schedulable? }
-  end
-
-  if role == "worker"
-    nodes = nodes.select { |n| n.is_worker? }
-  elsif role == "master"
-    nodes = nodes.select { |n| n.is_master? }
-  end
-
-  cache_resources *nodes
-  @host = nodes.sample.host
-end
-
 Given /^(I|admin) stores? in the#{OPT_SYM} clipboard the nodes backing pods(?: in project #{QUOTED})? labeled:$/ do |who, cbname, project, labels|
   if who == "admin"
     ensure_admin_tagged
