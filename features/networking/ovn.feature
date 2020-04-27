@@ -156,6 +156,18 @@ Feature: OVN related networking scenarios
     """
     And admin waits for all pods in the project to become ready up to 60 seconds
 
+    When I store the ovnkube-master "north" leader pod in the clipboard
+    Then the step should succeed
+    When the OVN "north" database is killed on the "<%= cb.north_leader.node_name %>" node
+    Then the step should succeed
+
+    And I wait up to 30 seconds for the steps to pass:
+    """
+    When I store the ovnkube-master "north" leader pod in the :new_north_leader clipboard
+    Then the step should succeed
+    And the expression should be true> cb.north_leader != cb.new_north_leader
+    """
+    And admin waits for all pods in the project to become ready up to 60 seconds
 
   # @author rbrattai@redhat.com
   # @case_id OCP-26138
