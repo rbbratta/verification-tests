@@ -141,7 +141,7 @@ Feature: OVN related networking scenarios
   # @case_id OCP-26091
   @admin
   @destructive
-  Scenario: New raft leader should be elected if SB db on existing master is crashed
+  Scenario: New corresponding raft leader should be elected if SB db or NB db on existing master is crashed
     Given admin uses the "openshift-ovn-kubernetes" project
     When I store the ovnkube-master "south" leader pod in the clipboard
     Then the step should succeed
