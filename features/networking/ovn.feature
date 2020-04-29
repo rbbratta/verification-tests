@@ -169,38 +169,6 @@ Feature: OVN related networking scenarios
     """
     And admin waits for all pods in the project to become ready up to 60 seconds
 
-  # @author rbrattai@redhat.com
-  # @case_id OCP-26138
-  @admin
-  @destructive
-  Scenario: Inducing Split Brain in the OVN HA cluster
-    Given admin uses the "openshift-ovn-kubernetes" project
-    When I store the ovnkube-master "south" leader pod in the clipboard
-    Then the step should succeed
-
-    Given I store the masters in the clipboard excluding "<%= cb.south_leader.node_name %>"
-    And I use the "<%= cb.nodes[0].name %>" node
-    # don't block all traffic that breaks etcd, just block the OVN ssl ports
-    When I run commands on the host:
-      | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
-    Then the step should succeed
-
-    And I wait up to 30 seconds for the steps to pass:
-    """
-    When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
-    Then the step should succeed
-    And the expression should be true> cb.south_leader == cb.new_south_leader
-    """
-    When I run commands on the host:
-      | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
-    And I wait up to 30 seconds for the steps to pass:
-    """
-    When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
-    Then the step should succeed
-    And the expression should be true> cb.south_leader == cb.new_south_leader
-    """
-    And admin waits for all pods in the project to become ready up to 60 seconds
-
 
   # @author rbrattai@redhat.com
   # @case_id OCP-26140
