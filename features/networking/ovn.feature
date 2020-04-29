@@ -152,7 +152,7 @@ Feature: OVN related networking scenarios
     """
     When I store the ovnkube-master "south" leader pod in the :new_south_leader clipboard
     Then the step should succeed
-    And the expression should be true> cb.south_leader != cb.new_south_leader
+    And the expression should be true> cb.south_leader.name != cb.new_south_leader.name
     """
     And admin waits for all pods in the project to become ready up to 60 seconds
 
@@ -165,7 +165,7 @@ Feature: OVN related networking scenarios
     """
     When I store the ovnkube-master "north" leader pod in the :new_north_leader clipboard
     Then the step should succeed
-    And the expression should be true> cb.north_leader != cb.new_north_leader
+    And the expression should be true> cb.north_leader.name != cb.new_north_leader.name
     """
     And admin waits for all pods in the project to become ready up to 60 seconds
 
