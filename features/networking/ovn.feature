@@ -169,6 +169,49 @@ Feature: OVN related networking scenarios
     """
     And admin waits for all pods in the project to become ready up to 60 seconds
 
+  # @author rbrattai@redhat.com
+  # @case_id OCP-26138
+  @admin
+  @destructive
+  Scenario: Inducing Split Brain in the OVN HA cluster
+    Given admin uses the "openshift-ovn-kubernetes" project
+    When I store the ovnkube-master "south" leader pod in the clipboard
+    Then the step should succeed
+
+    Given I store the masters in the clipboard excluding "<%= cb.south_leader.node_name %>"
+    And I use the "<%= cb.nodes[0].name %>" node
+    # don't block all traffic that breaks etcd, just block the OVN ssl ports
+    When I run commands on the host:
+      | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
+    Then the step should succeed
+
+    # wait for OVN to notice the traffic drop
+    And 30 seconds have passed
+    And I wait up to 30 seconds for the steps to pass:
+    # check the leader on the original leader to ensure it is still the leader and the split node doesn't become leader
+    """
+    When I store the ovnkube-master "south" leader pod in the :original_south_leader clipboard using node "<%= cb.south_leader.node_name %>"
+    Then the step should succeed
+    And the expression should be true> cb.south_leader.name == cb.original_south_leader.name
+    """
+    # try to get the isolated leader for debug, it might not work
+    When I store the ovnkube-master "south" leader pod in the :isolated_south_leader clipboard using node "<%= cb.node[0].name %>"
+    When I run commands on the host:
+      | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
+    # wait for OVN to reconverge
+    And 10 seconds have passed
+    And I wait up to 30 seconds for the steps to pass:
+    # check the leader on the original leader to ensure it is still the leader and the split node doesn't become leader
+    """
+    When I store the ovnkube-master "south" leader pod in the :after_south_leader clipboard using node "<%= cb.south_leader.node_name %>"
+    Then the step should succeed
+    When I store the ovnkube-master "south" leader pod in the :after_isolated_south_leader clipboard using node "<%= cb.node[0].name %>"
+    Then the step should succeed
+    And the expression should be true> cb.south_leader.name == cb.after_south_leader.name
+    And the expression should be true> cb.south_leader.name == cb.after_isolated_south_leader.name
+    """
+    And admin waits for all pods in the project to become ready up to 60 seconds
+
 
   # @author rbrattai@redhat.com
   # @case_id OCP-26140

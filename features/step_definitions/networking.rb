@@ -929,7 +929,7 @@ Given /^I store "([^"]*)" node's corresponding default networkType pod name in t
 end
 
 
-Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clipboard$/ do |ovndb, cb_leader_name|
+Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clipboard(?: using node #{QUOTED})?$/ do |ovndb, cb_leader_name, node_name|
   ensure_admin_tagged
   cb_leader_name ||= "#{ovndb}_leader"
   case ovndb
@@ -939,12 +939,25 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
     ovsappctl_cmd = %w(ovs-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound)
   end
 
-  ovn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin, quiet: true) { |pod, hash|
-    # make sure we pick a Running master
-    pod.ready?(user: admin, cached: false, quiet: true)
-  }
-  # use the oldest sdn_pod, hopying that it is the master
-  ovn_pods.sort!{ |a,b| a.props[:created] <=> b.props[:created]}
+  if node_name == nil
+    # if we don't specify a node pick the oldest pod to check leader status
+    ovn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false),
+                                           user: admin, quiet: true) { |pod, hash|
+      # make sure we pick a Running master
+      pod.ready?(user: admin, cached: false, quiet: true)
+    }
+    # use the oldest sdn_pod, hoping that it is the master
+    ovn_pods.sort!{ |a,b| a.props[:created] <=> b.props[:created]}
+
+  else
+    ovn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false),
+                                           user: admin, quiet: true) { |pod, hash|
+      # always make sure it is ready
+      pod.node_name == node_name && pod.ready?(user: admin, cached: false, quiet: true)
+    }
+    # there should be only one pod.
+  end
+
   cluster_state = nil
   ovn_pods.each{ |sdn_pod|
     @result = sdn_pod.exec(*ovsappctl_cmd, as: admin, container: "northd")
@@ -960,10 +973,12 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
   leader_line = servers[1].lines.find { |line| line.include? "(" + leader_id[1] }
   splits = leader_line.match(/\((\S+)[^:]+:([^:]+):(\d+)\)/)
   leader_node = splits.captures[1]
-  leader_pod = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin, quiet: true) { |pod, hash|
+  leader_pod = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false),
+                                           user: admin, quiet: true) { |pod, hash|
     pod.node_name == leader_node || pod.ip == leader_node
   }.first
   cb[cb_leader_name] = leader_pod
+  logger.info "cb.#{cb_leader_name}.name = #{leader_pod.name}"
 end
 
 
