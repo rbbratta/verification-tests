@@ -872,7 +872,7 @@ Given /^the vxlan tunnel address of node "([^"]*)" is stored in the#{OPT_SYM} cl
   end
   case networkType
   when "OVNKubernetes"
-    inf_name="ovn-k8s-mp0" 
+    inf_name="ovn-k8s-mp0"
     @result = host.exec_admin("ifconfig #{inf_name.split("\n")[0]}")
     cb[cb_address] = @result[:response].match(/\d{1,3}\.\d{1,3}.\d{1,3}.\d{1,3}/)[0]
   when "OpenShiftSDN"
@@ -939,9 +939,9 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
     ovsappctl_cmd = %w(ovs-appctl -t /var/run/ovn/ovnsb_db.ctl cluster/status OVN_Southbound)
   end
 
-  ovn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
+  ovn_pods = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin, quiet: true) { |pod, hash|
     # make sure we pick a Running master
-    pod.ready?(user: admin, cached: false)
+    pod.ready?(user: admin, cached: false, quiet: true)
   }
   # use the oldest sdn_pod, hopying that it is the master
   ovn_pods.sort!{ |a,b| a.props[:created] <=> b.props[:created]}
@@ -960,7 +960,7 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
   leader_line = servers[1].lines.find { |line| line.include? "(" + leader_id[1] }
   splits = leader_line.match(/\((\S+)[^:]+:([^:]+):(\d+)\)/)
   leader_node = splits.captures[1]
-  leader_pod = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
+  leader_pod = BushSlicer::Pod.get_labeled("app=ovnkube-master", project: project("openshift-ovn-kubernetes", switch: false), user: admin, quiet: true) { |pod, hash|
     pod.node_name == leader_node || pod.ip == leader_node
   }.first
   cb[cb_leader_name] = leader_pod
