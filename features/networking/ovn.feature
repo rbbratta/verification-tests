@@ -180,22 +180,29 @@ Feature: OVN related networking scenarios
 
     Given I store the masters in the clipboard excluding "<%= cb.south_leader.node_name %>"
     And I use the "<%= cb.nodes[0].name %>" node
+    # make sure to unblock after the test
+    And I register clean-up steps:
+    """
+    When I run commands on the host:
+      | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
+    """
     # don't block all traffic that breaks etcd, just block the OVN ssl ports
     When I run commands on the host:
       | iptables -t filter -A INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
     Then the step should succeed
 
-    # wait for OVN to notice the traffic drop
-    And 30 seconds have passed
+    # election timer is 1 second by default but the raft JSON-RPC probe might take 5 seconds to notice so wait 10 seconds
+    And 10 seconds have passed
     And I wait up to 30 seconds for the steps to pass:
     # check the leader on the original leader to ensure it is still the leader and the split node doesn't become leader
     """
     When I store the ovnkube-master "south" leader pod in the :original_south_leader clipboard using node "<%= cb.south_leader.node_name %>"
     Then the step should succeed
+    When I store the ovnkube-master "south" leader pod in the :isolated_south_leader clipboard using node "<%= cb.nodes[0].name %>"
+    Then the step should succeed
     And the expression should be true> cb.south_leader.name == cb.original_south_leader.name
     """
     # try to get the isolated leader for debug, it might not work
-    When I store the ovnkube-master "south" leader pod in the :isolated_south_leader clipboard using node "<%= cb.node[0].name %>"
     When I run commands on the host:
       | iptables -t filter -D INPUT -s <%= cb.south_leader.ip %> -p tcp --dport 9643:9644 -j DROP |
     # wait for OVN to reconverge
@@ -205,7 +212,7 @@ Feature: OVN related networking scenarios
     """
     When I store the ovnkube-master "south" leader pod in the :after_south_leader clipboard using node "<%= cb.south_leader.node_name %>"
     Then the step should succeed
-    When I store the ovnkube-master "south" leader pod in the :after_isolated_south_leader clipboard using node "<%= cb.node[0].name %>"
+    When I store the ovnkube-master "south" leader pod in the :after_isolated_south_leader clipboard using node "<%= cb.nodes[0].name %>"
     Then the step should succeed
     And the expression should be true> cb.south_leader.name == cb.after_south_leader.name
     And the expression should be true> cb.south_leader.name == cb.after_isolated_south_leader.name
