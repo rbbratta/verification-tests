@@ -953,7 +953,7 @@ Given /^I store the ovnkube-master#{OPT_QUOTED} leader pod in the#{OPT_SYM} clip
   ovn_pods.each{ |sdn_pod|
     @result = sdn_pod.exec(*ovsappctl_cmd, as: admin, container: "northd")
     if @result[:success]
-      cluster_state = @result[:response].strip.delete "\r"
+      cluster_state = @result[:response].strip
       break
     end
   }
