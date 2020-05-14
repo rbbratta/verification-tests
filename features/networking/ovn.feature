@@ -36,13 +36,10 @@ Feature: OVN related networking scenarios
     Then the step should succeed
     Given 2 pods become ready with labels:
       | name=test-pods |
-    And evaluation of `pod(0).node_name` is stored in the :node_name clipboard
-    And evaluation of `pod(0).ip` is stored in the :pod1_ip clipboard
-    And evaluation of `pod(1).name` is stored in the :pod2_name clipboard
 
     # Check pod works
-    When I execute on the "<%= cb.pod2_name %>" pod:
-      | curl | -s | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
+    When I execute on the "<%= pod(1).name %>" pod:
+      | curl | -s | --connect-timeout | 60 | <%= pod(0).ip_url %>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
 
@@ -56,8 +53,8 @@ Feature: OVN related networking scenarios
 
     # Check pod works
     Given I use the "<%= cb.usr_project%>" project
-    When I execute on the "<%= cb.pod2_name %>" pod:
-      | curl | -s | --connect-timeout | 60 | <%= cb.pod1_ip%>:8080 |
+    When I execute on the "<%= pod(1).name %>" pod:
+      | curl | -s | --connect-timeout | 60 | <%= pod(0).ip_url %>:8080 |
     Then the step should succeed
     And the output should contain "Hello OpenShift"
 
