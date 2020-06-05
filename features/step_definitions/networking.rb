@@ -1271,3 +1271,43 @@ Given /^I save ipecho url to the#{OPT_SYM} clipboard$/ do | cb_name |
   cb[cb_name]="172.31.249.80:9095"
   logger.info "The ipecho service url #{cb[cb_name]} is stored to the #{cb_name} clipboard."
 end
+
+
+Given /^I set the (ovnkube-master|sdn-controller) log level to "([^"]*)"" on node "([^"]*)"$/ do | network_pod, log_level, node_name |
+  ensure_admin_tagged
+  node = node(node_name)
+  host = node.host
+  case network_pod
+  when "ovnkube-master"
+    mmm = "_master"
+  end
+  current_content = YAML.load config_map(cm_name).value_of(key)
+  to_merge_content = YAML.load yaml
+
+  deep_merge!(current_content, to_merge_content)
+
+  config_map(cm_name).set_value(key, current_content.to_yaml, user: user)
+
+
+end
+
+# I set the (ovnkube-master|sdn-controller) log level to "" on node ""
+
+Given /^the OVN log level on node#{OPT_QUOTED} is set to "([^"]*)"$/ do |node_name, log_level|
+  ensure_admin_tagged
+  node_name ||= node.name
+  _admin = admin
+  case log_level
+  when "dbg"
+    num_level = 5
+  else
+    num_level = 2
+  end
+  ovnkube_pod = BushSlicer::Pod.get_labeled("app=ovnkube-node", project: project("openshift-ovn-kubernetes", switch: false), user: admin) { |pod, hash|
+    pod.node_name == node_name
+  }.first
+  cache_resources ovnkube_pod
+  @result = ovnkube_pod.exec(network_cmd, as: admin)
+
+end
+# I get the (ovnkube-master|sdn-controller) log level on node ""
