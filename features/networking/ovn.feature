@@ -6,6 +6,7 @@ Feature: OVN related networking scenarios
   @destructive
   Scenario: Create/delete pods while forcing OVN leader election
   #Test for bug https://bugzilla.redhat.com/show_bug.cgi?id=1781297
+    Given the env is using "OVNKubernetes" networkType
     Given I have a project
     And evaluation of `project.name` is stored in the :usr_project clipboard
 
@@ -28,6 +29,7 @@ Feature: OVN related networking scenarios
   @admin
   @destructive
   Scenario: Pods and Services should keep running when a new raft leader gets be elected
+    Given the env is using "OVNKubernetes" networkType
     Given I store the ovnkube-master "south" leader pod in the clipboard
     Given I have a project
     And evaluation of `project.name` is stored in the :usr_project clipboard
@@ -64,6 +66,7 @@ Feature: OVN related networking scenarios
   @admin
   @destructive
   Scenario: Traffic flow shouldn't be interrupted when master switches the leader positions
+    Given the env is using "OVNKubernetes" networkType
     Given I switch to cluster admin pseudo user
     Given admin creates a project
     And evaluation of `project.name` is stored in the :iperf_project clipboard
@@ -122,6 +125,7 @@ Feature: OVN related networking scenarios
   @admin
   @destructive
   Scenario: New raft leader should be elected if existing leader gets deleted or crashed in hybrid/non-hybrid clusters
+    Given the env is using "OVNKubernetes" networkType
     Given admin uses the "openshift-ovn-kubernetes" project
     When I store the ovnkube-master "north" leader pod in the clipboard
     Then the step should succeed
@@ -141,6 +145,7 @@ Feature: OVN related networking scenarios
   @admin
   @destructive
   Scenario: New corresponding raft leader should be elected if SB db or NB db on existing master is crashed
+    Given the env is using "OVNKubernetes" networkType
     Given admin uses the "openshift-ovn-kubernetes" project
     When I store the ovnkube-master "south" leader pod in the clipboard
     Then the step should succeed
@@ -174,6 +179,7 @@ Feature: OVN related networking scenarios
   @admin
   @destructive
   Scenario: Delete all OVN master pods and makes sure leader/follower election converges smoothly
+    Given the env is using "OVNKubernetes" networkType
     Given admin uses the "openshift-ovn-kubernetes" project
     When I store the ovnkube-master "north" leader pod in the clipboard
     Then the step should succeed
