@@ -33,8 +33,9 @@ Feature: OVN related networking scenarios
     Given I store the ovnkube-master "south" leader pod in the clipboard
     Given I have a project
     And evaluation of `project.name` is stored in the :usr_project clipboard
+    Given I obtain test data file "networking/list_for_pods.json"
     When I run the :create client command with:
-      | f | <%= BushSlicer::HOME %>/testdata/networking/list_for_pods.json |
+      | f | list_for_pods.json |
     Then the step should succeed
     Given 2 pods become ready with labels:
       | name=test-pods |
@@ -72,8 +73,9 @@ Feature: OVN related networking scenarios
     And evaluation of `project.name` is stored in the :iperf_project clipboard
     And admin uses the "<%= cb.iperf_project %>" project
 
+    Given I obtain test data file "networking/iperf_nodeport_service.json"
     When I run the :create admin command with:
-      | f | <%= BushSlicer::HOME %>/testdata/networking/iperf_nodeport_service.json |
+      | f | iperf_nodeport_service.json |
     Then the step should succeed
     And the pod named "iperf-server" becomes ready
     # readiness probe won't work because iperf-client will fail, we just have to wait for server to
@@ -84,7 +86,8 @@ Feature: OVN related networking scenarios
     Given I store the masters in the :masters clipboard
 
     # place directly on master
-    When I run oc create as admin over "<%= BushSlicer::HOME %>/testdata/networking/egress-ingress/qos/iperf-server.json" replacing paths:
+    Given I obtain test data file "networking/egress-ingress/qos/iperf-server.json"
+    When I run oc create as admin over "iperf-server.json" replacing paths:
       | ["spec"]["containers"][0]["args"] | ["-c", "<%= service("iperf-server").ip %>", "-u", "-J", "-t", "30"] |
       | ["spec"]["containers"][0]["name"] | "iperf-client"                                                      |
       | ["metadata"]["name"]              | "iperf-client"                                                      |
