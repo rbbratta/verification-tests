@@ -21,6 +21,7 @@ Given /^the pod(?: named "(.+)")? becomes ready$/ do |name|
 
   unless @result[:success]
     logger.error(@result[:response])
+    pod.describe(user, quiet: false)
     raise "#{pod.name} pod did not become ready"
   end
 end
@@ -29,6 +30,7 @@ Given /^the pod(?: named "(.+)")? is ready$/ do |name|
   @result = pod(name).ready?(user: user, cached: false)
 
   unless @result[:success]
+    pod.describe(user, quiet: false)
     raise "#{pod.name} pod is not ready"
   end
 end
@@ -38,6 +40,7 @@ Given /^the pod(?: named "(.+)")? becomes terminating$/ do |name|
   @result = pod(name).wait_till_terminating(user, ready_timeout)
 
   unless @result[:success]
+    pod.describe(user, quiet: false)
     raise "#{pod.name} pod did not become terminating"
   end
 end
@@ -49,6 +52,7 @@ Given /^the pod(?: named "(.+)")? becomes present$/ do |name|
 
   unless @result[:success]
     logger.error(@result[:response])
+    pod.describe(user, quiet: false)
     raise "#{pod.name} pod was never present"
   end
 end
